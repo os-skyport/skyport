@@ -113,8 +113,8 @@ def counter_can_spill_to(counter: Counter, passenger: Passenger) -> bool:
     if counter.kind is CounterKind.FIRST_ONLY:
         return passenger.cls in {PassengerClass.FIRST, PassengerClass.BUSINESS, PassengerClass.ECONOMY}
     if counter.kind is CounterKind.BUSINESS_ONLY:
-        return passenger.cls in {PassengerClass.BUSINESS, PassengerClass.ECONOMY}
+        return passenger.cls in {PassengerClass.FIRST, PassengerClass.BUSINESS, PassengerClass.ECONOMY}
     if counter.kind is CounterKind.ECONOMY_ONLY:
-        return passenger.cls is PassengerClass.ECONOMY
+        return passenger.cls in {PassengerClass.FIRST, PassengerClass.BUSINESS, PassengerClass.ECONOMY}
     return False
 
