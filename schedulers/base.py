@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from typing import Deque, Iterable, Optional
 
-from skyport.core.models import CLASS_ORDER, Counter, Passenger, PassengerClass
+from core.models import CLASS_ORDER, Counter, Passenger, PassengerClass
 
 QueueMap = dict[PassengerClass, Deque[Passenger]]
 

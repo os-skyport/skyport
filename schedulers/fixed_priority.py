@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from skyport.core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass
-from skyport.schedulers.base import QueueMap, Scheduler
+from core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass
+from schedulers.base import QueueMap, Scheduler
 
 
 class FixedPriorityScheduler(Scheduler):

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from skyport.core.models import PassengerClass
-from skyport.io.parser import load_passengers
+from core.models import PassengerClass
+from data_io.parser import load_passengers
 
 
 def test_whitespace_input_normalizes_ids_and_numeric_classes():

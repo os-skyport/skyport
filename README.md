@@ -5,15 +5,13 @@
 ## 디렉터리 구조
 
 ```
-skyport/
-├── core/         # 시뮬레이션 엔진, 데이터 모델
-├── io/           # 입력 파서, 결과 리포터
-├── schedulers/   # FCFS, Priority, SJF, HybridMLQ
-├── gui/          # Tkinter GUI / HTML 웹 GUI
-└── main.py       # CLI 진입점
-tests/            # pytest 단위 테스트
-input.txt         # 예제 입력
-DESIGN_SPEC.md    # 설계 명세
+core/          # 시뮬레이션 엔진, 데이터 모델
+data_io/       # 입력 파서, 결과 리포터
+schedulers/    # FCFS, Priority, SJF, HybridMLQ
+gui/           # Tkinter GUI / HTML 웹 GUI
+main.py        # CLI 진입점
+tests/         # pytest 단위 테스트
+input.txt      # 예제 입력
 ```
 
 ## 실행 방법
@@ -21,25 +19,25 @@ DESIGN_SPEC.md    # 설계 명세
 ### 헤드리스 실행 (기본: HybridMLQ)
 
 ```bash
-python3 -m skyport.main --input input.txt --scheduler hybrid
+python3 main.py --input input.txt --scheduler hybrid
 ```
 
 ### 모든 스케줄러 ATT 비교
 
 ```bash
-python3 -m skyport.main --input input.txt --compare
+python3 main.py --input input.txt --compare
 ```
 
 ### Tkinter GUI 실행
 
 ```bash
-python3 -m skyport.main --input input.txt --gui
+python3 main.py --input input.txt --gui
 ```
 
 ### 브라우저용 HTML GUI 생성
 
 ```bash
-python3 -m skyport.main --input input.txt --scheduler hybrid --web skyport_gui.html
+python3 main.py --input input.txt --scheduler hybrid --web skyport_gui.html
 ```
 
 생성된 HTML은 스케줄러 선택, Play / Pause / Step / Reset, 시간 직접 입력(`Go`), 타임라인 슬라이더 탐색을 지원합니다.
@@ -47,7 +45,7 @@ python3 -m skyport.main --input input.txt --scheduler hybrid --web skyport_gui.h
 ### 이벤트 로그 출력
 
 ```bash
-python3 -m skyport.main --input input.txt --scheduler hybrid --log
+python3 main.py --input input.txt --scheduler hybrid --log
 ```
 
 ## 지원 스케줄러

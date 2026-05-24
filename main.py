@@ -3,11 +3,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from skyport.core.engine import SimulationEngine
-from skyport.core.models import PassengerClass, default_counters
-from skyport.io.parser import load_passengers
-from skyport.io.reporter import print_report
-from skyport.schedulers.registry import SCHEDULERS
+from core.engine import SimulationEngine
+from core.models import PassengerClass, default_counters
+from data_io.parser import load_passengers
+from data_io.reporter import print_report
+from schedulers.registry import SCHEDULERS
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -21,14 +21,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.gui:
-        from skyport.gui.app import run_app
+        from gui.app import run_app
 
         run_app(args.input, args.scheduler)
         return 0
 
     passengers = load_passengers(args.input)
     if args.web:
-        from skyport.gui.web import write_web_gui
+        from gui.web import write_web_gui
 
         path = write_web_gui(passengers, args.scheduler, args.web)
         print(f"Wrote web GUI: {path}")

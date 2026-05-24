@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import deque
 from typing import Iterable
 
-from skyport.core.models import (
+from core.models import (
     CLASS_ORDER,
     Counter,
     Event,
@@ -13,8 +13,8 @@ from skyport.core.models import (
     counter_can_spill_to,
     default_counters,
 )
-from skyport.core.snapshot import CounterState, Metrics, PassengerView, SimSnapshot
-from skyport.schedulers.base import QueueMap, Scheduler
+from core.snapshot import CounterState, Metrics, PassengerView, SimSnapshot
+from schedulers.base import QueueMap, Scheduler
 
 SAFETY_LIMIT = 1000
 

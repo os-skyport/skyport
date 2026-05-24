@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from skyport.core.models import Passenger, PassengerClass
+from core.models import Passenger, PassengerClass
 
 
 def load_passengers(path: str | Path) -> list[Passenger]:

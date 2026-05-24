@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from skyport.core.models import Event
+from core.models import Event
 
 
 class EventLogger:

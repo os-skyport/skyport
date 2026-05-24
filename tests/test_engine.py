@@ -1,9 +1,9 @@
 from collections import deque
 
-from skyport.core.engine import SimulationEngine
-from skyport.core.models import Counter, CounterKind, Passenger, PassengerClass, default_counters
-from skyport.io.parser import load_passengers
-from skyport.schedulers import FCFSScheduler, HybridMLQScheduler
+from core.engine import SimulationEngine
+from core.models import Counter, CounterKind, Passenger, PassengerClass, default_counters
+from data_io.parser import load_passengers
+from schedulers import FCFSScheduler, HybridMLQScheduler
 
 
 def test_assignment_input_runs_to_completion():

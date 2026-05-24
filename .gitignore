@@ -1,12 +1,29 @@
-# Python bytecode and caches
+# OS
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Logs
+*.log
+logs/
+
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
 
 # Virtual environments
 .venv/
@@ -14,24 +31,22 @@ venv/
 env/
 ENV/
 
-# Build and packaging artifacts
-build/
-dist/
-*.egg-info/
-
-# Local environment files
-.env
-.env.*
-
-# Editor and OS files
-.DS_Store
-.idea/
-.vscode/
-*.swp
-*.swo
+# Tests and tooling
+.pytest_cache/
 
 # Generated reports and exports
-*.log
 results/
+output/
 outputs/
+tmp/
 
+# LaTeX
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
+
+# Generated web GUI (main.py --web <path>)
+/*.html

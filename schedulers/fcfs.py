@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from skyport.core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass, counter_can_spill_to
-from skyport.schedulers.base import QueueMap, Scheduler, fcfs_key, iter_queues, remove_passenger
+from core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass, counter_can_spill_to
+from schedulers.base import QueueMap, Scheduler, fcfs_key, iter_queues, remove_passenger
 
 
 class FCFSScheduler(Scheduler):

@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from skyport.core.engine import SimulationEngine
-from skyport.core.models import Passenger, PassengerClass, default_counters
-from skyport.schedulers.registry import SCHEDULERS
+from core.engine import SimulationEngine
+from core.models import Passenger, PassengerClass, default_counters
+from schedulers.registry import SCHEDULERS
 
 
 def write_web_gui(passengers: list[Passenger], scheduler_key: str, output_path: str | Path) -> Path:

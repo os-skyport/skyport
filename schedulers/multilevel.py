@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Optional
 
-from skyport.core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass
-from skyport.schedulers.base import QueueMap, Scheduler, iter_queues, remove_passenger
+from core.models import CLASS_ORDER, Counter, CounterKind, Passenger, PassengerClass
+from schedulers.base import QueueMap, Scheduler, iter_queues, remove_passenger
 
 ECONOMY_AGING_THRESHOLD = 10
 

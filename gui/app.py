@@ -3,11 +3,11 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from skyport.core.engine import SimulationEngine
-from skyport.core.models import CLASS_ORDER, PassengerClass, default_counters
-from skyport.io.parser import load_passengers
-from skyport.io.reporter import summary_text
-from skyport.schedulers.registry import SCHEDULERS
+from core.engine import SimulationEngine
+from core.models import CLASS_ORDER, PassengerClass, default_counters
+from data_io.parser import load_passengers
+from data_io.reporter import summary_text
+from schedulers.registry import SCHEDULERS
 
 
 CLASS_COLORS = {
