@@ -1,90 +1,78 @@
-# SkyPort 체크인 카운터 스케줄러
+# SkyPort
 
-운영체제 텀 프로젝트로 구현한 **비선점형 다중 프로세서 체크인 카운터 스케줄링 시뮬레이터**입니다. 공항 체크인 카운터를 CPU에, 승객을 프로세스에 대응시켜 여러 스케줄링 정책을 시뮬레이션하고 평균 대기 시간(ATT)을 비교합니다.
+공항 체크인 카운터를 CPU, 승객을 프로세스로 모델링한 비선점형 다중 프로세서 스케줄링 시뮬레이터입니다. 같은 입력에 대한 스케줄러별 평균 반환 시간(ATT)을 비교합니다.
 
-## 디렉터리 구조
+## 기술 스택
 
-```
-core/          # 시뮬레이션 엔진, 데이터 모델
-data_io/       # 입력 파서, 결과 리포터
-schedulers/    # FCFS, Priority, SJF, HybridMLQ
-gui/           # Tkinter GUI / HTML 웹 GUI
-main.py        # CLI 진입점
-tests/         # pytest 단위 테스트
-input.txt      # 예제 입력
-```
+Python 표준 라이브러리 · 정적 HTML
 
-## 실행 방법
+테스트에는 pytest, 논문 그림 생성에는 matplotlib을 사용합니다.
 
-### 헤드리스 실행 (기본: HybridMLQ)
+## 시작하기
+
+### 사전 요구사항
+
+- Python 3.10 이상
+
+### 실행
+
+별도 런타임 패키지 설치 없이 저장소 루트에서 실행합니다.
 
 ```bash
 python3 main.py --input input.txt --scheduler hybrid
 ```
 
-### 모든 스케줄러 ATT 비교
+## 사용 방법
+
+### 실행 옵션
 
 ```bash
 python3 main.py --input input.txt --compare
+python3 main.py --input input.txt --web out.html
+python3 main.py --help
 ```
 
-### Tkinter GUI 실행
+`--compare`는 스케줄러를 비교하고, `--web`으로 생성한 `out.html`은 브라우저에서 엽니다.
+`--log`를 추가하면 도착·배정·완료 이벤트 로그를 출력합니다.
+
+| `--scheduler` 값 | 방식 |
+| --- | --- |
+| `fcfs` | 도착 순서 |
+| `priority` | 등급 우선순위 |
+| `sjf` | 서비스 시간이 짧은 순 |
+| `hybrid` | 등급별 큐·전용 카운터·work stealing·aging 조합 |
+
+### 입력 파일
+
+샘플은 [input.txt](input.txt)를 사용합니다. 도착 시각만 늘리고 줄여 부하를 바꾼 [input_light.txt](input_light.txt)·[input_heavy.txt](input_heavy.txt)로 부하별 결과를 비교할 수 있습니다. 열 순서와 허용값은 [입력 규약](https://github.com/OS-SkyPort/.github/blob/main/docs/spec.md#요구사항)을 참고합니다.
+
+### 논문 빌드
+
+matplotlib과 XeLaTeX가 설치된 환경에서 실행합니다.
 
 ```bash
-python3 main.py --input input.txt --gui
+python3 docs/generate_paper_figures.py
+xelatex -output-directory=docs docs/HYBRID_MLQ_PAPER.tex
 ```
-
-### 브라우저용 HTML GUI 생성
-
-```bash
-python3 main.py --input input.txt --scheduler hybrid --web skyport_gui.html
-```
-
-생성된 HTML은 스케줄러 선택, Play / Pause / Step / Reset, 시간 직접 입력(`Go`), 타임라인 슬라이더 탐색을 지원합니다.
-
-### 이벤트 로그 출력
-
-```bash
-python3 main.py --input input.txt --scheduler hybrid --log
-```
-
-## 지원 스케줄러
-
-| 키 | 이름 | 설명 |
-| --- | --- | --- |
-| `fcfs` | FCFS | 도착 순 처리 (baseline) |
-| `priority` | Priority | 고정 클래스 우선순위 (baseline) |
-| `sjf` | SJF | 비선점형 최단 작업 우선 (baseline) |
-| `hybrid` | HybridMLQ | 클래스별 큐 + 우선순위 보호 + spill-over + HRRN |
-
-## 입력 형식
-
-두 가지 형식을 모두 지원합니다.
-
-**CSV 형식**
-
-```csv
-passenger_id,arrival_time,class,service_time
-P01,0,ECONOMY,7
-```
-
-**공백 구분 형식 (과제 제공 포맷)**
-
-```text
-1 0 3 7
-2 0 1 12
-```
-
-열 순서는 `id`, `arrival_time`, `class`(1=FIRST, 2=BUSINESS, 3=ECONOMY), `service_time` 입니다.
 
 ## 테스트
 
 ```bash
-python3 -m pytest tests/
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install pytest
+python -m pytest tests/
 ```
 
-## 참고 문서
+Windows PowerShell에서는 가상환경 활성화에 `.venv\Scripts\Activate.ps1`을 사용합니다.
 
-- [DESIGN_SPEC.md](DESIGN_SPEC.md) — 설계 명세 및 HybridMLQ 알고리즘 상세
-- `과제.pdf` — 원본 과제 명세
-- `보고서.docx` — 최종 보고서
+## 관련 문서
+
+| 문서 | 내용 |
+| --- | --- |
+| [spec.md](https://github.com/OS-SkyPort/.github/blob/main/docs/spec.md) | 입력·시뮬레이션 규칙·완료 기준 |
+| [plan.md](https://github.com/OS-SkyPort/.github/blob/main/docs/plan.md) | 코드 구조·스케줄러 확장·평가 방법 |
+| [tasks.md](https://github.com/OS-SkyPort/.github/blob/main/docs/tasks.md) | 진행 현황·부하별 ATT 기준선·aging 스윕 결과 |
+| [논문 PDF](docs/HYBRID_MLQ_PAPER.pdf) | 설계 근거·평가·한계 |
+| [논문 소스](docs/HYBRID_MLQ_PAPER.tex) | 논문 수정 및 재생성 원본 |
+| [작업 지침](https://github.com/OS-SkyPort/.github/blob/main/docs/AGENTS.md) | 문서별 역할·변경 원칙 |

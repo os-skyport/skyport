@@ -25,4 +25,3 @@ def test_csv_input_with_comments(tmp_path: Path):
     assert passengers[0].passenger_id == "P07"
     assert passengers[0].cls is PassengerClass.FIRST
     assert passengers[0].service_time == 15
-

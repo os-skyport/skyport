@@ -1,14 +1,14 @@
 from collections import deque
 
 from core.engine import SimulationEngine
-from core.models import Counter, CounterKind, Passenger, PassengerClass, default_counters
+from core.models import Counter, CounterKind, Passenger, PassengerClass
 from data_io.parser import load_passengers
-from schedulers import FCFSScheduler, HybridMLQScheduler
+from schedulers import FCFSScheduler, FixedPriorityScheduler, HybridMLQScheduler, NonPreemptiveSJFScheduler
 
 
 def test_assignment_input_runs_to_completion():
     passengers = load_passengers("input.txt")
-    engine = SimulationEngine(passengers, default_counters(), HybridMLQScheduler())
+    engine = SimulationEngine(passengers, HybridMLQScheduler())
 
     snapshot = engine.run()
 
@@ -21,19 +21,19 @@ def test_same_tick_completion_then_dispatch():
         Passenger("P01", 0, PassengerClass.FIRST, 1),
         Passenger("P02", 1, PassengerClass.FIRST, 1),
     ]
-    engine = SimulationEngine(passengers, default_counters(), FCFSScheduler())
+    engine = SimulationEngine(passengers, FCFSScheduler())
 
     engine.tick()
     snapshot = engine.tick()
 
-    messages = [event.message for event in snapshot.events_this_tick]
+    messages = snapshot.events_this_tick
     assert any("COMPLETE P01" in message for message in messages)
     assert any("DISPATCH P02" in message for message in messages)
 
 
 def test_non_preemptive_completion_invariant():
     passengers = load_passengers("input.txt")
-    engine = SimulationEngine(passengers, default_counters(), HybridMLQScheduler())
+    engine = SimulationEngine(passengers, HybridMLQScheduler())
 
     engine.run()
 
@@ -98,3 +98,19 @@ def test_hybrid_economy_queue_promotes_aged_passengers_with_hrrn():
 
     assert selected.passenger_id == "P01"
 
+
+def test_assignment_baselines_select_globally():
+    cases = [
+        (FCFSScheduler(), "P02"),
+        (FixedPriorityScheduler(), "P01"),
+        (NonPreemptiveSJFScheduler(), "P03"),
+    ]
+
+    for scheduler, expected in cases:
+        queues = {
+            PassengerClass.FIRST: deque([Passenger("P01", 2, PassengerClass.FIRST, 8)]),
+            PassengerClass.BUSINESS: deque([Passenger("P02", 0, PassengerClass.BUSINESS, 5)]),
+            PassengerClass.ECONOMY: deque([Passenger("P03", 1, PassengerClass.ECONOMY, 2)]),
+        }
+        selected = scheduler.select(3, Counter("C1", CounterKind.FIRST_ONLY), queues)
+        assert selected.passenger_id == expected

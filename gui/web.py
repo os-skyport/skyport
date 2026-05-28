@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 from core.engine import SimulationEngine
-from core.models import Passenger, PassengerClass, default_counters
-from schedulers.registry import SCHEDULERS
+from core.models import CLASS_ORDER, Passenger
+from core.snapshot import SimSnapshot
+from schedulers import SCHEDULERS
 
 
 def write_web_gui(passengers: list[Passenger], scheduler_key: str, output_path: str | Path) -> Path:
@@ -17,83 +18,57 @@ def write_web_gui(passengers: list[Passenger], scheduler_key: str, output_path: 
 
 
 def build_trace(passengers: list[Passenger], scheduler_key: str) -> dict:
+    """Pre-compute every scheduler's whole run; the page is a pure replay of this."""
     runs = {}
-    comparison = []
     for key, scheduler_cls in SCHEDULERS.items():
-        scheduler = scheduler_cls()
-        snapshots = _run_snapshots(passengers, scheduler)
-        final_snapshot = snapshots[-1]
+        engine = SimulationEngine(passengers, scheduler_cls())
+        snapshots = [_snapshot_to_dict(engine.snapshot())]
+        while not engine.is_done:
+            snapshots.append(_snapshot_to_dict(engine.tick()))
         runs[key] = {
             "key": key,
             "name": scheduler_cls.name,
             "snapshots": snapshots,
+            "bars": [_bar(p) for p in engine.completed],
+            "att": snapshots[-1]["metrics"]["overallAtt"],
         }
-        comparison.append(
-            {
-                "key": key,
-                "name": scheduler_cls.name,
-                "att": final_snapshot["metrics"]["overallAtt"],
-                "first": final_snapshot["metrics"]["classAtt"]["FIRST"],
-                "business": final_snapshot["metrics"]["classAtt"]["BUSINESS"],
-                "economy": final_snapshot["metrics"]["classAtt"]["ECONOMY"],
-            }
-        )
-    return {"schedulerKey": scheduler_key, "runs": runs, "comparison": comparison}
+    return {"schedulerKey": scheduler_key, "runs": runs}
 
 
-def _run_snapshots(passengers: list[Passenger], scheduler) -> list[dict]:
-    engine = SimulationEngine(passengers, default_counters(), scheduler)
-    snapshots = [_snapshot_to_dict(engine.snapshot())]
-    while not engine.is_done:
-        snapshots.append(_snapshot_to_dict(engine.tick()))
-    return snapshots
+def _bar(passenger: Passenger) -> dict:
+    return {
+        "passengerId": passenger.passenger_id,
+        "className": passenger.cls.name,
+        "counterId": passenger.counter_id,
+        "startTime": passenger.service_start_time,
+        "completionTime": passenger.completion_time,
+    }
 
 
-def _snapshot_to_dict(snapshot) -> dict:
+def _snapshot_to_dict(snapshot: SimSnapshot) -> dict:
     return {
         "time": snapshot.time,
         "counters": [
             {
                 "counterId": c.counter_id,
-                "kind": c.kind,
-                "passengerId": c.passenger_id,
-                "className": c.passenger_class.name if c.passenger_class else None,
+                "kind": c.kind.value,
+                "passengerId": c.current.passenger_id if c.current else None,
+                "className": c.current.cls.name if c.current else None,
+                "startTime": c.current.service_start_time if c.current else None,
                 "remaining": c.remaining,
             }
             for c in snapshot.counters
         ],
         "queues": {
-            cls.name: [
-                {
-                    "passengerId": p.passenger_id,
-                    "arrivalTime": p.arrival_time,
-                    "serviceTime": p.service_time,
-                    "className": p.cls.name,
-                }
-                for p in snapshot.queues[cls]
-            ]
-            for cls in PassengerClass
+            cls.name: [p.passenger_id for p in snapshot.queues[cls]] for cls in CLASS_ORDER
         },
-        "completed": [
-            {
-                "passengerId": p.passenger_id,
-                "arrivalTime": p.arrival_time,
-                "className": p.cls.name,
-                "serviceTime": p.service_time,
-                "startTime": p.service_start_time,
-                "completionTime": p.completion_time,
-                "turnaroundTime": p.turnaround_time,
-                "counterId": p.counter_id,
-            }
-            for p in snapshot.completed
-        ],
         "metrics": {
             "totalCount": snapshot.metrics.total_count,
             "completedCount": snapshot.metrics.completed_count,
             "overallAtt": round(snapshot.metrics.overall_att, 2),
-            "classAtt": {cls.name: round(snapshot.metrics.class_att[cls], 2) for cls in PassengerClass},
+            "classAtt": {cls.name: round(snapshot.metrics.class_att[cls], 2) for cls in CLASS_ORDER},
         },
-        "events": [event.message for event in snapshot.events_this_tick],
+        "events": list(snapshot.events_this_tick),
     }
 
 
@@ -114,6 +89,7 @@ HTML_TEMPLATE = """<!doctype html>
       --business: #0369a1;
       --economy: #15803d;
       --idle: #e2e8f0;
+      --accent: #2d6cab;
     }
     * { box-sizing: border-box; }
     body {
@@ -132,7 +108,7 @@ HTML_TEMPLATE = """<!doctype html>
       border-bottom: 1px solid var(--line);
       background: var(--panel);
     }
-    h1 { font-size: 18px; margin: 0; font-weight: 700; }
+    h1 { font-size: 18px; margin: 0; font-weight: 700; color: var(--accent); }
     main {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 330px;
@@ -160,7 +136,7 @@ HTML_TEMPLATE = """<!doctype html>
       cursor: pointer;
     }
     button:hover { background: #eef2f7; }
-    input[type="range"] { width: 130px; }
+    input[type="range"] { width: 130px; accent-color: var(--accent); }
     .time-entry {
       width: 70px;
       height: 34px;
@@ -188,7 +164,7 @@ HTML_TEMPLATE = """<!doctype html>
     #timeline { width: 180px; }
     .counters {
       display: grid;
-      grid-template-columns: repeat(5, minmax(105px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
       gap: 8px;
     }
     .counter {
@@ -224,9 +200,9 @@ HTML_TEMPLATE = """<!doctype html>
       padding: 4px 8px;
       text-align: center;
     }
-    .FIRST { background: var(--first); }
-    .BUSINESS { background: var(--business); }
-    .ECONOMY { background: var(--economy); }
+    .chip.FIRST { background: var(--first); }
+    .chip.BUSINESS { background: var(--business); }
+    .chip.ECONOMY { background: var(--economy); }
     .gantt-wrap { overflow: auto; }
     svg { width: 100%; min-width: 760px; height: 300px; display: block; }
     .metrics-grid {
@@ -250,7 +226,7 @@ HTML_TEMPLATE = """<!doctype html>
       font-size: 13px;
     }
     .bar { height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
-    .bar span { display: block; height: 100%; background: #0f766e; }
+    .bar span { display: block; height: 100%; background: var(--accent); }
     .log {
       height: 100%;
       overflow: auto;
@@ -318,7 +294,6 @@ HTML_TEMPLATE = """<!doctype html>
     function activeSnapshots() { return activeRun().snapshots; }
     function finalTime() { return activeSnapshots()[activeSnapshots().length - 1].time; }
     function current() { return activeSnapshots()[index]; }
-    function className(value) { return value ? value : "idle"; }
     function render() {
       const snap = current();
       renderCounters(snap);
@@ -340,10 +315,10 @@ HTML_TEMPLATE = """<!doctype html>
     }
 
     function renderQueues(snap) {
-      $("queues").innerHTML = ["FIRST", "BUSINESS", "ECONOMY"].map((cls) => `
+      $("queues").innerHTML = Object.keys(snap.queues).map((cls) => `
         <div class="queue-row">
           <strong>${cls}</strong>
-          <div class="chips">${snap.queues[cls].map((p) => `<span class="chip ${cls}">${p.passengerId}</span>`).join("") || "<span class='label'>empty</span>"}</div>
+          <div class="chips">${snap.queues[cls].map((id) => `<span class="chip ${cls}">${id}</span>`).join("") || "<span class='label'>empty</span>"}</div>
         </div>
       `).join("");
     }
@@ -365,16 +340,18 @@ HTML_TEMPLATE = """<!doctype html>
       const maxTime = Math.max(60, finalTime());
       const left = 44;
       const top = 20;
-      const rowH = 48;
+      const rowH = 240 / snap.counters.length;
       const scale = 820 / maxTime;
+      const rows = new Map(snap.counters.map((c, i) => [c.counterId, i]));
       let html = "";
-      for (let i = 0; i < 5; i += 1) {
+      snap.counters.forEach((c, i) => {
         const y = top + i * rowH;
-        html += `<text x="8" y="${y + 19}" font-size="13" font-weight="700">C${i + 1}</text>`;
+        html += `<text x="8" y="${y + 19}" font-size="13" font-weight="700">${c.counterId}</text>`;
         html += `<line x1="${left}" y1="${y + 24}" x2="880" y2="${y + 24}" stroke="#d7dee8"/>`;
-      }
-      for (const p of snap.completed) {
-        const row = Number(p.counterId.slice(1)) - 1;
+      });
+      for (const p of activeRun().bars) {
+        if (p.completionTime > snap.time) continue;
+        const row = rows.get(p.counterId);
         const x = left + p.startTime * scale;
         const w = Math.max(4, (p.completionTime - p.startTime) * scale);
         const y = top + row * rowH + 5;
@@ -383,25 +360,14 @@ HTML_TEMPLATE = """<!doctype html>
       }
       for (const c of snap.counters) {
         if (!c.passengerId) continue;
-        const started = findStart(c.passengerId);
-        if (started === null) continue;
-        const row = Number(c.counterId.slice(1)) - 1;
-        const x = left + started * scale;
-        const w = Math.max(4, (snap.time - started + 1) * scale);
+        const row = rows.get(c.counterId);
+        const x = left + c.startTime * scale;
+        const w = Math.max(4, (snap.time - c.startTime + 1) * scale);
         const y = top + row * rowH + 5;
         html += `<rect x="${x}" y="${y}" width="${w}" height="26" rx="4" fill="${classColors[c.className]}" opacity="0.72"></rect>`;
       }
       html += `<line x1="${left + snap.time * scale}" y1="10" x2="${left + snap.time * scale}" y2="285" stroke="#111827" stroke-width="2"/>`;
       svg.innerHTML = html;
-    }
-
-    function findStart(passengerId) {
-      for (const snap of activeSnapshots()) {
-        for (const c of snap.counters) {
-          if (c.passengerId === passengerId) return snap.time;
-        }
-      }
-      return null;
     }
 
     function renderLog() {
@@ -410,8 +376,9 @@ HTML_TEMPLATE = """<!doctype html>
     }
 
     function renderComparison() {
-      const max = Math.max(...data.comparison.map((row) => row.att));
-      $("comparison").innerHTML = data.comparison.map((row) => `
+      const runs = Object.values(data.runs);
+      const max = Math.max(...runs.map((run) => run.att));
+      $("comparison").innerHTML = runs.map((row) => `
         <div class="compare-row">
           <strong>${row.name}${row.key === selectedKey ? " ✓" : ""}</strong>
           <div class="bar"><span style="width:${(row.att / max) * 100}%"></span></div>

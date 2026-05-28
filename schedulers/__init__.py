@@ -3,10 +3,9 @@ from schedulers.fixed_priority import FixedPriorityScheduler
 from schedulers.multilevel import HybridMLQScheduler
 from schedulers.np_sjf import NonPreemptiveSJFScheduler
 
-__all__ = [
-    "FCFSScheduler",
-    "FixedPriorityScheduler",
-    "HybridMLQScheduler",
-    "NonPreemptiveSJFScheduler",
-]
-
+SCHEDULERS = {
+    "fcfs": FCFSScheduler,
+    "priority": FixedPriorityScheduler,
+    "sjf": NonPreemptiveSJFScheduler,
+    "hybrid": HybridMLQScheduler,
+}

@@ -1,0 +1,191 @@
+% !TEX program = xelatex
+% Compile twice with XeLaTeX so that references are resolved correctly.
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{kotex}
+\usepackage{tabularx}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{figures/}{docs/figures/}}
+
+\title{HybridMLQ: 전용 큐 보호와 작업 탈취를 결합한\\
+비선점 체크인 스케줄링}
+\author{}
+
+\begin{document}
+
+\maketitle
+\suppressfloats[t]
+
+\begin{abstract}
+등급별 전용·공용 공항 체크인 카운터에서는 전용 큐 우선 원칙과 전체 평균
+반환 시간(ATT) 사이의 상충을 고려해야 한다. 본 연구는 비선점 Priority,
+Shortest Job First (SJF), Highest Response Ratio Next (HRRN)를 결합한
+온라인 휴리스틱 HybridMLQ를 제안한다. 과제의 승객 50명 고정 입력에서 ATT는
+15.88로 FCFS의 19.52와 Fixed-Priority의 22.50보다 낮았지만, 전역 비선점
+SJF의 14.90보다는 6.58\% 높았다. 최악 등급 ATT는 SJF의 44.25보다 낮은
+31.38이었으나 FCFS의 23.88보다는 높았다. 즉 HybridMLQ는 어느 한 지표에서도
+최적이 아니며, (전체 ATT, 최악 등급 ATT) 평면에서 네 정책이 서로를 지배하지
+않는 관계에 있는 한 지점이다. 본 연구는 일반적 우월성이 아니라 두 지표
+사이의 선택지를 제시한다.
+\end{abstract}
+
+\begin{IEEEkeywords}
+비선점 스케줄링, Multi-Level Queue, SJF, HRRN, 작업 탈취
+\end{IEEEkeywords}
+
+\section{문제 정의}
+
+전용 카운터를 엄격히 운영하면 자기 등급 큐가 비었을 때 자원이 유휴 상태가
+되고, 모든 승객을 통합하면 등급별 서비스 정책이 사라진다. 본 연구의 목표는
+전용 큐 우선과 작업 탈취를 결합한 정책을 설계하고, 지정된 세 baseline 대비
+전체 ATT와 등급별 ATT의 상충을 분석하는 것이다. 스케줄링 용어는
+Pinedo~\cite{pinedo}를 따른다.
+
+시스템은 동일 속도의 카운터 5개(C1: FIRST, C2: BUSINESS, C3: ECONOMY,
+C4--C5: FLEX)와 승객 50명으로 구성된다. 도착 시각은 0--58이고 등급별
+인원은 8, 11, 31명이며, 평균 서비스 시간은 각각 12.75, 8.91, 5.77이다.
+승객 $i$의 도착 시각 $a_i$, 서비스 시간 $s_i$, 완료 시각 $C_i$에 대해
+
+\begin{equation}
+T_i=C_i-a_i, \qquad
+\mathrm{ATT}=\frac{1}{n}\sum_{i=1}^{n}(C_i-a_i)
+\label{eq:att}
+\end{equation}
+
+로 정의한다. 등급 $c$의 승객만으로 계산한 값을 $\mathrm{ATT}_c$라 하고,
+두 번째 지표인 최악 등급 ATT를 $\max_{c}\mathrm{ATT}_c$로 정의한다.
+서비스는 비선점형이고, 모든 선택은 현재까지 도착한 승객만 사용한다. 여기서
+전용 큐 ``보호''는 자기 등급 승객이 기다리는 동안 다른 등급을 선택하지
+않는다는 규칙이며, 등급별 ATT 보장을 뜻하지 않는다.
+
+\section{HybridMLQ}
+
+도착 승객은 FIRST, BUSINESS, ECONOMY 큐에 저장된다. 빈 카운터는
+표~\ref{tab:dispatch}의 규칙으로 선택한다. 비선점 Priority는 전용 큐를
+우선하고, SJF는 짧은 작업을 선택해 convoy effect를 줄이며, 제한적 HRRN은
+긴 Economy 작업의 starvation을 완화한다. 즉 세 알고리즘은 각각 큐 간
+정책, 큐 내부 효율, aging을 담당한다.
+
+\begin{table}[t]
+\caption{HybridMLQ 디스패치 규칙}
+\label{tab:dispatch}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\toprule
+카운터 & 선택 규칙 \\
+\midrule
+C1 & FIRST에서 SJF; 비면 나머지 큐에서 SJF \\
+C2 & BUSINESS에서 SJF; 비면 나머지 큐에서 SJF \\
+C3 & ECONOMY에서 SJF/aging; 비면 나머지 큐에서 SJF \\
+C4, C5 & 전체 큐에서 SJF \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+C3는 10 tick 이상 기다린 Economy 승객이 있을 때만 그 후보 중 HRRN을
+적용하며, 그렇지 않으면 SJF를 사용한다. 시각 \textit{now}에서
+
+\begin{equation}
+W_i=\mathit{now}-a_i, \qquad RR_i=\frac{W_i+s_i}{s_i}.
+\label{eq:hrrn}
+\end{equation}
+
+SJF 동률은 등급, 도착 시각, 승객 ID 순으로, HRRN 동률은 서비스 시간과
+ID 순으로 해소한다~\cite{implementation}. 그림~\ref{fig:gantt}의 P01과
+P40은 전용 큐가 비었을 때 발생한 두 작업 탈취 사례이다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{hybridmlq_gantt.pdf}
+\caption{고정 입력에서 HybridMLQ가 생성한 실행 일정}
+\label{fig:gantt}
+\end{figure}
+
+\section{구현 및 평가}
+
+시뮬레이터는 각 tick에 도착, 완료, C1--C5 순 디스패치, 잔여 시간 감소를
+수행하고 상태 변화를 기록한다. 스케줄러는 교체 가능한 Strategy 모듈이며,
+$C_i-\mathit{start}_i=s_i$를 검사해 비선점을 검증한다~\cite{implementation}.
+과제 정의에 따라 FCFS는 전역 도착 순, Fixed-Priority는 전역
+FIRST--BUSINESS--ECONOMY 및 등급 내 FCFS, SJF는 등급 무관 전역 최단
+서비스 시간 순으로 구현했다. 네 정책은 동일 입력과 엔진에서 비교했다.
+
+\begin{table}[t]
+\caption{알고리즘별 평균 반환 시간}
+\label{tab:results}
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+알고리즘 & 전체 ATT & FIRST & BUSINESS & ECONOMY \\
+\midrule
+FCFS                  & 19.52 & 23.88 & 20.36 & 18.10 \\
+Fixed-Priority        & 22.50 & \textbf{13.25} & \textbf{11.09} & 28.94 \\
+Non-preemptive SJF    & \textbf{14.90} & 44.25 & 16.18 & \textbf{6.87} \\
+HybridMLQ             & 15.88 & 31.38 & 24.18 & 8.94 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+HybridMLQ는 FCFS와 Fixed-Priority보다 전체 ATT를 각각 18.65\%, 29.42\%
+줄였다. 이는 짧은 Economy 작업이 62\%인 입력에서 SJF가 FCFS의 convoy
+effect와 Priority의 Economy 지연을 줄이는 경향과 일치한다. 그러나 전역
+SJF는 등급 보호 없이 짧은 작업을 선택하므로 ATT가 14.90으로 가장 낮았고,
+평균 서비스 시간이 가장 긴 FIRST의 ATT는 44.25까지 증가했다. HybridMLQ는
+전체 ATT를 0.98 희생하는 대신 최악 등급 ATT를 SJF의 44.25에서 31.38로
+낮췄다.
+
+다만 전용 큐 보호가 상위 등급의 ATT를 baseline 이하로 보장하지는 않는다.
+HybridMLQ의 FIRST(31.38)와 BUSINESS(24.18)는 FCFS의 23.88과 20.36보다
+오히려 높다. 전용 카운터가 큐 내부에서 SJF를 쓰고 flex 카운터 두 대가 전역
+SJF를 쓰므로, 짧은 Economy 작업이 먼저 소진되고 긴 FIRST/BUSINESS 작업의
+대기가 남기 때문이다. 최악 등급 ATT만 보면 FCFS(23.88)와
+Fixed-Priority(28.94)가 HybridMLQ(31.38)보다 낫다. 따라서 HybridMLQ의
+근거는 어느 한 지표의 최적성이 아니라, 그림~\ref{fig:tradeoff}가 보여주듯
+(전체 ATT, 최악 등급 ATT) 평면에서 네 정책 중 어느 것도 다른 것을 지배하지
+않는다는 사실에 있다.
+
+제거 실험에서 탈취 제거는 C1--C3가 자기 등급 큐가 비면 유휴로 남는
+변형(C4, C5는 유지), aging 제거는 C3가 항상 SJF를 쓰는 변형으로 정의한다.
+두 변형의 ATT는 각각 16.18과 16.02였다. Aging은 Economy ATT를 10.61에서
+8.94로 낮추는 대신 BUSINESS ATT를 19.91에서 24.18로 높였고, 전체 ATT도
+16.02에서 15.88로 낮췄다. 이 입력에서는 대기가 긴 Economy 승객을 먼저
+처리하는 것이 형평성과 전체 ATT에 함께 이득이었으나, 두 효과 모두 단일
+입력의 관찰이므로 일반화할 수는 없다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{performance_tradeoff.pdf}
+\caption{전체 ATT와 최악 등급 ATT의 상충 관계}
+\label{fig:tradeoff}
+\end{figure}
+
+\section{한계 및 결론}
+
+평가는 단일 데이터셋과 간단한 제거 실험에 한정되며, aging 임계값 민감도와
+통계적 반복 검증이 없다. 최적해나 하한이 없어 optimality gap을 알 수 없고,
+고정된 카운터 순서, 비선점, 동일 처리 속도도 실제 환경을 단순화한다.
+
+HybridMLQ는 과제의 세 비선점 알고리즘 조합과 카운터 배정 전략을 구현해
+FCFS와 Fixed-Priority보다 낮은 ATT를 기록했다. 전역 SJF보다는 느리지만
+최악 등급 ATT를 완화했고, 반대로 FCFS보다 상위 두 등급의 ATT는 높았다.
+즉 두 지표 중 어느 쪽도 최적이 아닌 비지배 지점을 택한 정책이다. 다양한
+부하와 임계값에서 재검증해야 일반화할 수 있다.
+
+\begin{thebibliography}{00}
+
+\bibitem{pinedo}
+M. L. Pinedo, \emph{Scheduling: Theory, Algorithms, and Systems}.
+Springer.
+
+\bibitem{implementation}
+SkyPort, ``SkyPort simulator implementation and tests,'' source code.
+
+\end{thebibliography}
+
+\end{document}

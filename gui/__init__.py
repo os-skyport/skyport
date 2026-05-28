@@ -1,2 +1,1 @@
-"""Tkinter GUI for SkyPort."""
-
+"""Static HTML GUI for SkyPort."""
